@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include <termios.h>
 
+#define PI 3.14159265
+
 using namespace cv;
 using namespace std;
 
@@ -148,6 +150,7 @@ int main( int argc, char** argv )
             cout << posY1 << "\n";
         }
         imshow("Thresholded Image 1", imgThresholded1); //show the thresholded image
+        imshow("Original 1", imgOriginal1); //show the original image
         //==================== object detection ===========================================================================//
 
         //==================== OBJECT DETECTION CAM2 ===========================================================================//
@@ -186,14 +189,35 @@ int main( int argc, char** argv )
     
     		cout << "Cam 2 position: \t";
             cout << posX2 << "\t";
-            cout << posY2 << "\n\n";
+            cout << posY2 << "\n";
         }
         imshow("Thresholded Image 2", imgThresholded2); //show the thresholded image
+        imshow("Original 2", imgOriginal2); //show the original image
         //==================== object detection ===========================================================================//
 
-        imshow("Original 1", imgOriginal1); //show the original image
-        imshow("Original 2", imgOriginal2); //show the original image
-	
+        //==================== DISTANCE ESTIMATION ========================================================================//
+
+        double dist = 240;
+
+        // convert pixel position to angle
+        double angleX1 = ((posX1*64) / 640) + 13;
+        double angleX2 = 90 - (((posX2*64) / 640) + 13);
+
+        // calculate tangensial value for angles
+        double tan1 = tan( angleX1 * PI / 180.0 );
+        double tan2 = tan( angleX2 * PI / 180.0 );
+
+        // calculate object position
+        int posX, posY;
+        posX = (tan1 * dist) / (tan1 + tan2);
+        posY = (tan2 * posX);
+
+        cout << "Object position: \t";
+        cout << posX << "\t";
+        cout << posY << "\n\n";
+
+        //==================== distance estimation ========================================================================//
+        
 
             if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
             {
