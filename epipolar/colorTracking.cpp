@@ -214,10 +214,39 @@ int main( int argc, char** argv )
 
         cout << "Object position: \t";
         cout << posX << "\t";
-        cout << posY << "\n\n";
+        cout << posY << "\t";
 
         //==================== distance estimation ========================================================================//
+
+
+
+        //==================== HEIGHT ESTIMATION ========================================================================//
         
+        double stand = 103;
+        double posR, angleZ, tanZ;
+        int posZ;
+
+        posR = sqrt(posX*posX + posY*posY);
+
+        if(posY2 > 240) {
+        	angleZ = ((posY2*48) / 480) - 24;
+        	tanZ = tan(angleZ * PI / 180.0);
+
+        	posZ = posR * tanZ;
+        	posZ = stand - posZ;
+        }
+        else if (posY2 < 240){
+        	angleZ = 24 - ((posY2*48)/480);
+        	tanZ = tan(angleZ * PI / 180.0);
+
+        	posZ = posR * tanZ;
+        	posZ = stand + posZ;
+        }
+        else posZ = stand;
+        cout << posZ << "\n\n";
+        //==================== height estimation ========================================================================//
+
+
 
             if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
             {
