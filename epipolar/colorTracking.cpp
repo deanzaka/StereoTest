@@ -3,6 +3,7 @@
 #include <cvaux.h>
 #include <highgui.h>
 #include <iostream>
+#include <fstream>
 #include <list>
 
 #include <opencv2/video/background_segm.hpp>
@@ -12,6 +13,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/video/tracking.hpp>
+#include <opencv2/video/background_segm.hpp>
 
 #include <math.h>
 #include <unistd.h>
@@ -20,6 +22,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <fstream>
 
 #define PI 3.14159265
 
@@ -28,8 +31,8 @@ using namespace std;
 
 int main( int argc, char** argv )
 {
-    VideoCapture cap1(1); //capture the video from webcam
-    VideoCapture cap2(2); //capture the video from webcam
+    VideoCapture cap1(2); //capture the video from webcam
+    VideoCapture cap2(1); //capture the video from webcam
 
     if ( !cap1.isOpened() )  // if not success, exit program
     {
@@ -62,10 +65,10 @@ int main( int argc, char** argv )
     int iLowH = 0;
     int iHighH = 10;
 
-    int iLowS = 130;
+    int iLowS = 150;
     int iHighS = 255;
 
-    int iLowV = 140;
+    int iLowV = 110;
     int iHighV = 255;
 	
 
@@ -85,7 +88,23 @@ int main( int argc, char** argv )
     Mat imgTmp2;
     cap1.read(imgTmp1);
     cap2.read(imgTmp2);
+
+    Mat backSub1;
+    Mat backSub2;
+    Mat fgMaskMOG1;
+    Mat fgMaskMOG2;
+    Mat channel1[3];
+    Mat channel2[3];
+
+
+    Ptr<BackgroundSubtractor> pMOG1; //MOG Background subtractor
+    Ptr<BackgroundSubtractor> pMOG2; //MOG Background subtractor
+    pMOG1 = new BackgroundSubtractorMOG(); //MOG approach
+    pMOG2 = new BackgroundSubtractorMOG(); //MOG approach
+  
     
+    // make text file to save data
+    ofstream myfile ("data.txt");
 
     while (true)
     {
@@ -93,6 +112,7 @@ int main( int argc, char** argv )
         bool bSuccess1 = cap1.read(imgOriginal1); // read a new frame from video
         Mat imgOriginalCopy1; // make copy of imgOriginal
         cap1.read(imgOriginalCopy1);
+        
 
         Mat imgOriginal2;
         bool bSuccess2 = cap2.read(imgOriginal2); // read a new frame from video
@@ -110,6 +130,32 @@ int main( int argc, char** argv )
             cout << "Cannot read a frame from video stream" << endl;
             break;
         }
+
+        //==================== BACKGROUND SUBSTRACTION =========================================================================//
+
+        split(imgOriginal1, channel1); //split to RGB channel
+        pMOG1->operator()(imgOriginal1, fgMaskMOG1); //update the background model
+
+        //masking each channel with MOG
+        bitwise_and(channel1[0], fgMaskMOG1, channel1[0]);
+        bitwise_and(channel1[1], fgMaskMOG1, channel1[1]);
+        bitwise_and(channel1[2], fgMaskMOG1, channel1[2]);
+
+        merge(channel1, 3, backSub1); //merging masked channel
+
+        split(imgOriginal2, channel2); //split to RGB channel
+        pMOG2->operator()(imgOriginal2, fgMaskMOG2); //update the background model
+
+        //masking each channel with MOG
+        bitwise_and(channel2[0], fgMaskMOG2, channel2[0]);
+        bitwise_and(channel2[1], fgMaskMOG2, channel2[1]);
+        bitwise_and(channel2[2], fgMaskMOG2, channel2[2]);
+
+        merge(channel2, 3, backSub2); //merging masked channel        
+
+        imshow("Background Substraction 1", backSub1);
+        imshow("Background Substraction 2", backSub2);
+        //==================== BACKGROUND SUBSTRACTION =========================================================================//
 
         //==================== OBJECT DETECTION CAM1 ===========================================================================//
         Mat imgHSV1;
@@ -197,7 +243,7 @@ int main( int argc, char** argv )
 
         //==================== DISTANCE ESTIMATION ========================================================================//
 
-        double dist = 240;
+        double dist = 160;
 
         // convert pixel position to angle
         double angleX1 = ((posX1*64) / 640) + 13;
@@ -218,11 +264,9 @@ int main( int argc, char** argv )
 
         //==================== distance estimation ========================================================================//
 
-
-
         //==================== HEIGHT ESTIMATION ========================================================================//
         
-        double stand = 103;
+        double stand = 103.0;
         double posR, angleZ, tanZ;
         int posZ;
 
@@ -246,13 +290,23 @@ int main( int argc, char** argv )
         cout << posZ << "\n\n";
         //==================== height estimation ========================================================================//
 
+        // write to file
+  		if (myfile.is_open())
+  		{
+    		myfile << "Object position: \t";
+	        myfile << posX << "\t";
+    	    myfile << posY << "\t";
+    	    myfile << posZ << "\n";
+	        
+  		}
+  		else cout << "Unable to open file";
 
-
-            if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
-            {
-            cout << "esc key is pressed by user" << endl;
-                    break;
-            }
+        if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+        {
+        	myfile.close();
+        	cout << "esc key is pressed by user" << endl;
+                break;
+        }
     }
     return 0;
 }
