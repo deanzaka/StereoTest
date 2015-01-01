@@ -243,7 +243,7 @@ int main( int argc, char** argv )
 
         //==================== DISTANCE ESTIMATION ========================================================================//
 
-        double dist = 160;
+        double dist = 200;
 
         // convert pixel position to angle
         double angleX1 = ((posX1*64) / 640) + 13;
